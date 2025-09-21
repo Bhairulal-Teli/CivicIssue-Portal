@@ -3,6 +3,7 @@ import { Search, FileText } from 'lucide-react';
 import IssueCard from './IssueCard';
 import Modal from '../common/Modal';
 import LoadingSpinner from '../common/LoadingSpinner';
+import OptimizedImage from '../common/OptimizedImage';
 import { issuesAPI } from '../../services/api';
 
 const IssuesList = () => {
@@ -14,6 +15,7 @@ const IssuesList = () => {
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterPriority, setFilterPriority] = useState('All');
   const [filterCategory, setFilterCategory] = useState('All');
+  const [filterWithPhotos, setFilterWithPhotos] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
 
   // Available categories from your schema
@@ -33,7 +35,20 @@ const IssuesList = () => {
       const response = await issuesAPI.getAll(filters);
       
       if (response.success) {
-        setIssues(response.data);
+        let filteredIssues = response.data;
+        
+        // Apply photo filter on frontend since backend doesn't have this filter
+        if (filterWithPhotos === 'With Photos') {
+          filteredIssues = response.data.filter(issue => 
+            issue.photos && issue.photos.length > 0
+          );
+        } else if (filterWithPhotos === 'Without Photos') {
+          filteredIssues = response.data.filter(issue => 
+            !issue.photos || issue.photos.length === 0
+          );
+        }
+        
+        setIssues(filteredIssues);
       } else {
         setError('Failed to fetch issues');
       }
@@ -48,7 +63,7 @@ const IssuesList = () => {
   // Fetch issues on component mount and when filters change
   useEffect(() => {
     fetchIssues();
-  }, [filterStatus, filterPriority, filterCategory, searchTerm]);
+  }, [filterStatus, filterPriority, filterCategory, filterWithPhotos, searchTerm]);
 
   const handleView = async (issue) => {
     try {
@@ -182,6 +197,16 @@ const IssuesList = () => {
                 <option key={category} value={category}>{category}</option>
               ))}
             </select>
+
+            <select
+              value={filterWithPhotos}
+              onChange={(e) => setFilterWithPhotos(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="All">All Issues</option>
+              <option value="With Photos">With Photos</option>
+              <option value="Without Photos">Without Photos</option>
+            </select>
           </div>
         </div>
         
@@ -214,6 +239,7 @@ const IssuesList = () => {
               setFilterStatus('All');
               setFilterPriority('All');
               setFilterCategory('All');
+              setFilterWithPhotos('All');
               setSearchTerm('');
             }}
             className="mt-4 px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
@@ -275,22 +301,137 @@ const IssuesList = () => {
               </div>
             )}
 
-            {/* Photos */}
+            {/* Photos Gallery */}
             {selectedIssue.photos && selectedIssue.photos.length > 0 && (
               <div>
-                <label className="text-sm font-medium text-gray-500 mb-2 block">Photos</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {selectedIssue.photos.map((photo, index) => (
-                    <img
-                      key={index}
-                      src={photo}
-                      alt={`Issue photo ${index + 1}`}
-                      className="w-full h-32 object-cover rounded-lg border border-gray-200"
-                      onError={(e) => {
-                        e.target.src = 'https://via.placeholder.com/200x150/3B82F6/FFFFFF?text=Image+Not+Found';
+                <label className="text-sm font-medium text-gray-500 mb-3 block">
+                  Photos ({selectedIssue.photos.length})
+                </label>
+                {selectedIssue.photos.length === 1 ? (
+                  // Single photo - larger display
+                  <div className="w-full">
+                    <OptimizedImage
+                      src={selectedIssue.photos[0]}
+                      alt="Issue photo"
+                      className="w-full max-h-96 rounded-lg border border-gray-200 bg-gray-50"
+                      onClick={() => {
+                        // Create lightbox for single image
+                        const lightbox = document.createElement('div');
+                        lightbox.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60] cursor-pointer p-4';
+                        lightbox.innerHTML = `
+                          <div class="relative max-w-full max-h-full">
+                            <img src="${selectedIssue.photos[0]}" alt="Full size" class="max-w-full max-h-full object-contain rounded-lg" />
+                            <button class="absolute top-4 right-4 text-white bg-black bg-opacity-50 rounded-full w-10 h-10 flex items-center justify-center hover:bg-opacity-70 text-xl">
+                              ×
+                            </button>
+                          </div>
+                        `;
+                        document.body.appendChild(lightbox);
+                        lightbox.onclick = (e) => {
+                          if (e.target === lightbox || e.target.tagName === 'BUTTON') {
+                            document.body.removeChild(lightbox);
+                          }
+                        };
                       }}
                     />
-                  ))}
+                  </div>
+                ) : (
+                  // Multiple photos - grid layout
+                  <div className="grid grid-cols-2 gap-3">
+                    {selectedIssue.photos.map((photo, index) => (
+                      <div key={index} className="relative group">
+                        <OptimizedImage
+                          src={photo}
+                          alt={`Issue photo ${index + 1}`}
+                          className="w-full h-32 rounded-lg border border-gray-200 cursor-pointer photo-hover"
+                          onClick={() => {
+                            // Create lightbox with navigation for multiple images
+                            let currentIndex = index;
+                            const lightbox = document.createElement('div');
+                            lightbox.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60] p-4';
+                            
+                            const updateLightbox = () => {
+                              lightbox.innerHTML = `
+                                <div class="relative max-w-4xl max-h-full flex flex-col items-center">
+                                  <img src="${selectedIssue.photos[currentIndex]}" alt="Full size" class="max-w-full max-h-full object-contain rounded-lg mb-4" />
+                                  <div class="flex items-center space-x-4">
+                                    <button class="prev-btn bg-white bg-opacity-20 text-white px-4 py-2 rounded-lg hover:bg-opacity-30 ${currentIndex === 0 ? 'opacity-50 cursor-not-allowed' : ''}" ${currentIndex === 0 ? 'disabled' : ''}>
+                                      ← Previous
+                                    </button>
+                                    <div class="text-white bg-black bg-opacity-50 px-3 py-1 rounded-full text-sm">
+                                      ${currentIndex + 1} of ${selectedIssue.photos.length}
+                                    </div>
+                                    <button class="next-btn bg-white bg-opacity-20 text-white px-4 py-2 rounded-lg hover:bg-opacity-30 ${currentIndex === selectedIssue.photos.length - 1 ? 'opacity-50 cursor-not-allowed' : ''}" ${currentIndex === selectedIssue.photos.length - 1 ? 'disabled' : ''}>
+                                      Next →
+                                    </button>
+                                  </div>
+                                  <button class="close-btn absolute top-4 right-4 text-white bg-black bg-opacity-50 rounded-full w-10 h-10 flex items-center justify-center hover:bg-opacity-70 text-xl">
+                                    ×
+                                  </button>
+                                </div>
+                              `;
+                              
+                              // Add event listeners
+                              lightbox.querySelector('.prev-btn')?.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                if (currentIndex > 0) {
+                                  currentIndex--;
+                                  updateLightbox();
+                                }
+                              });
+                              
+                              lightbox.querySelector('.next-btn')?.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                if (currentIndex < selectedIssue.photos.length - 1) {
+                                  currentIndex++;
+                                  updateLightbox();
+                                }
+                              });
+                              
+                              lightbox.querySelector('.close-btn')?.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                document.body.removeChild(lightbox);
+                              });
+                            };
+                            
+                            updateLightbox();
+                            document.body.appendChild(lightbox);
+                            
+                            // Close on backdrop click
+                            lightbox.onclick = (e) => {
+                              if (e.target === lightbox) {
+                                document.body.removeChild(lightbox);
+                              }
+                            };
+                            
+                            // Keyboard navigation
+                            const handleKeyPress = (e) => {
+                              if (e.key === 'ArrowLeft' && currentIndex > 0) {
+                                currentIndex--;
+                                updateLightbox();
+                              } else if (e.key === 'ArrowRight' && currentIndex < selectedIssue.photos.length - 1) {
+                                currentIndex++;
+                                updateLightbox();
+                              } else if (e.key === 'Escape') {
+                                document.body.removeChild(lightbox);
+                                document.removeEventListener('keydown', handleKeyPress);
+                              }
+                            };
+                            
+                            document.addEventListener('keydown', handleKeyPress);
+                          }}
+                        />
+                        <div className="absolute bottom-1 right-1 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+                          {index + 1}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Photo metadata */}
+                <div className="mt-2 text-xs text-gray-500">
+                  Click any photo to view full size {selectedIssue.photos.length > 1 && '• Use arrow keys or navigation buttons to browse'}
                 </div>
               </div>
             )}
