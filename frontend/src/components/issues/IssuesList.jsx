@@ -76,15 +76,23 @@ const IssuesList = () => {
 
   const handleStatusUpdate = async (issueId, newStatus) => {
     try {
+      console.log('Updating status:', { issueId, newStatus });
+      
       const response = await issuesAPI.updateStatus(issueId, newStatus, `Status updated to ${newStatus}`);
+      console.log('Update response:', response);
+      
       if (response.success) {
         // Refresh the issues list
         fetchIssues();
+        // Close modal if open
+        setIsViewModalOpen(false);
         alert('Status updated successfully!');
+      } else {
+        alert(`Error: ${response.message}`);
       }
     } catch (err) {
       console.error('Error updating status:', err);
-      alert('Error updating status');
+      alert(`Error updating status: ${err.message || 'Unknown error'}`);
     }
   };
 
@@ -148,10 +156,8 @@ const IssuesList = () => {
             >
               <option value="All">All Status</option>
               <option value="Pending">Pending</option>
-              <option value="Acknowledged">Acknowledged</option>
               <option value="In Progress">In Progress</option>
               <option value="Resolved">Resolved</option>
-              <option value="Closed">Closed</option>
             </select>
 
             <select
@@ -322,14 +328,8 @@ const IssuesList = () => {
               <label className="text-sm font-medium text-gray-700 mb-2 block">Quick Status Update</label>
               <div className="flex space-x-2">
                 <button
-                  onClick={() => handleStatusUpdate(selectedIssue.id, 'Acknowledged')}
-                  className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
-                >
-                  Acknowledge
-                </button>
-                <button
                   onClick={() => handleStatusUpdate(selectedIssue.id, 'In Progress')}
-                  className="px-3 py-1 text-xs bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 transition-colors"
+                  className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
                 >
                   In Progress
                 </button>

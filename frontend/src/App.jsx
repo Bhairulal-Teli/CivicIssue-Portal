@@ -6,6 +6,7 @@ import IssuesList from './components/issues/IssuesList';
 import Departments from './components/departments/Departments';
 import Analytics from './components/analytics/Analytics';
 import Settings from './components/settings/Settings';
+import TestStatusUpdate from './components/debug/TestStatusUpdate'; // Add this
 import './App.css';
 
 const App = () => {
@@ -23,6 +24,8 @@ const App = () => {
         return <Analytics />;
       case 'settings':
         return <Settings />;
+      case 'debug': // Add this
+        return <TestStatusUpdate />;
       default:
         return <Dashboard />;
     }
@@ -36,6 +39,8 @@ const App = () => {
           <Header currentPage={currentPage} setCurrentPage={setCurrentPage} />
           <main className="min-h-screen">
             {renderPage()}
+            {/* Temporarily add debug component at bottom */}
+            {currentPage === 'issues' && <TestStatusUpdate />}
           </main>
         </div>
       </div>

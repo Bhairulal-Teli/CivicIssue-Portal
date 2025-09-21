@@ -33,17 +33,33 @@ class ApiClient {
       ...options,
     };
 
+    console.log('🌐 API Request:', {
+      method: config.method || 'GET',
+      url,
+      headers: config.headers,
+      body: config.body
+    });
+
     try {
       const response = await fetch(url, config);
       
+      console.log('📡 API Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        url: response.url
+      });
+      
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.text();
+        console.error('❌ API Error Response:', errorData);
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorData}`);
       }
       
       const data = await response.json();
+      console.log('✅ API Success:', data);
       return data;
     } catch (error) {
-      console.error('API request failed:', error);
+      console.error('🔥 API request failed:', error);
       throw error;
     }
   }
@@ -126,6 +142,7 @@ export const issuesAPI = {
 
   // Update issue status
   updateStatus: (id, status, note) => {
+    console.log('API call - updateStatus:', { id, status, note });
     return apiClient.patch(`/issues/${id}/status`, { status, note });
   },
 

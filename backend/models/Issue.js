@@ -35,8 +35,8 @@ const issueSchema = new mongoose.Schema(
         },
         status: {
             type: String,
-            enum: ["open", "acknowledged", "in_progress", "resolved", "closed"],
-            default: "open",
+            enum: ["Pending", "In Progress", "Resolved"], // Updated to match friend's schema
+            default: "Pending", // Updated default
         },
         createdBy: {
             type: mongoose.Schema.Types.ObjectId,
@@ -52,7 +52,7 @@ const issueSchema = new mongoose.Schema(
             {
                 status: {
                     type: String,
-                    enum: ["open", "acknowledged", "in_progress", "resolved", "closed"],
+                    enum: ["Pending", "In Progress", "Resolved"], // Updated to match
                 },
                 by: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
                 note: { type: String },
