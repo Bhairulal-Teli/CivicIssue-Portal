@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Civic Issue Management Admin Portal
 
 A comprehensive React-based admin portal for managing civic issues, designed for municipal staff to efficiently handle citizen reports, track progress, and analyze performance metrics.
@@ -284,3 +285,7 @@ For support and questions:
 - Tailwind CSS for the utility-first CSS framework
 - Lucide React for the beautiful icons
 - SIH (Smart India Hackathon) for the inspiration
+=======
+# CivicIssue-Portal
+A web portal for admin of civic issue app which connects with mobile application
+>>>>>>> 29f12a0c9f8d2f22d84226ad9267f08e7ee98211
